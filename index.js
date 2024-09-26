@@ -10,7 +10,7 @@ const port = 3000;
 
 let venomClient;
 
-const incomingMessageUrl = process.env.NODE_ENV === 'production' 
+const incomingMessageUrl = process.env.NODE_ENV === '©' 
   ? 'https://cgdesarrollos.mx/save-message' 
   : 'http://cgdesarrollos.test/save-message';
 

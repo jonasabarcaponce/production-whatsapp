@@ -10,7 +10,7 @@ const port = 3000;
 
 let venomClient;
 
-const incomingMessageUrl = process.env.NODE_ENV === '©' 
+const incomingMessageUrl = process.env.NODE_ENV === 'production' 
   ? 'https://cgdesarrollos.mx/save-message' 
   : 'http://cgdesarrollos.test/save-message';
 
@@ -45,7 +45,7 @@ function startListening(client) {
     };
 
     axios
-      .post($incomingMessageUrl, data)
+      .post(incomingMessageUrl, data)
       .then((response) => {
         console.log('Message posted to the server:', response.data);
       })

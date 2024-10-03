@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 const express = require('express');
@@ -9,10 +8,11 @@ const app = express();
 const port = 3000;
 
 let venomClient;
+let messageQueue = [];
 
 const incomingMessageUrl = process.env.NODE_ENV === 'production' 
   ? 'https://cgdesarrollos.mx/save-message' 
-  : 'http://cgdesarrollos.test/save-message';
+  : 'https://cgdesarrollos.mx/save-message';
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -26,6 +26,7 @@ venom
     venomClient = client;
     console.log('Venom session started');
     startListening(client);
+    processQueue(); // Process any queued messages
   })
   .catch((erro) => {
     console.log('Error starting Venom session: ', erro);
@@ -67,30 +68,44 @@ function startListening(client) {
   });
 }
 
+// Function to process queued messages
+function processQueue() {
+  while (messageQueue.length > 0) {
+    const { to, message, res } = messageQueue.shift();
+    sendMessage(to, message, res);
+  }
+}
+
+// Function to send a message
+function sendMessage(to, message, res) {
+  venomClient
+    .sendText(to, message)
+    .then((result) => {
+      res.status(200).json({
+        status: 'success',
+        data: result
+      });
+    })
+    .catch((erro) => {
+      res.status(500).json({
+        status: 'error',
+        message: erro.toString()
+      });
+    });
+}
+
 // API route to send a WhatsApp message using POST
 app.post('/send-message', (req, res) => {
   const { to, message } = req.body;
   console.log('Received status: ', req.body.status);
   console.log('Received body: ', req.body);
   if (venomClient) {
-    venomClient
-      .sendText(to, message)
-      .then((result) => {
-        res.status(200).json({
-          status: 'success',
-          data: result
-        });
-      })
-      .catch((erro) => {
-        res.status(500).json({
-          status: 'error',
-          message: erro.toString()
-        });
-      });
+    sendMessage(to, message, res);
   } else {
-    res.status(500).json({
-      status: 'error',
-      message: 'Venom client not initialized'
+    messageQueue.push({ to, message, res });
+    res.status(202).json({
+      status: 'queued',
+      message: 'Venom client not initialized, message queued'
     });
   }
 });

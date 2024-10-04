@@ -16,6 +16,7 @@ const incomingMessageUrl = process.env.NODE_ENV === 'production'
 
 // Middleware to parse JSON requests
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Create a session when the server starts
 venom
@@ -76,10 +77,64 @@ function processQueue() {
   }
 }
 
-// Function to send a message
+// Function to send a text message
 function sendMessage(to, message, res) {
   venomClient
     .sendText(to, message)
+    .then((result) => {
+      res.status(200).json({
+        status: 'success',
+        data: result
+      });
+    })
+    .catch((erro) => {
+      res.status(500).json({
+        status: 'error',
+        message: erro.toString()
+      });
+    });
+}
+
+// Function to send an image
+function sendImage(to, imageUrl, caption, res) {
+  venomClient
+    .sendImage(to, imageUrl, 'image', caption)
+    .then((result) => {
+      res.status(200).json({
+        status: 'success',
+        data: result
+      });
+    })
+    .catch((erro) => {
+      res.status(500).json({
+        status: 'error',
+        message: erro.toString()
+      });
+    });
+}
+
+// Function to send a location
+function sendLocation(to, latitude, longitude, title, res) {
+  venomClient
+    .sendLocation(to, latitude, longitude, title)
+    .then((result) => {
+      res.status(200).json({
+        status: 'success',
+        data: result
+      });
+    })
+    .catch((erro) => {
+      res.status(500).json({
+        status: 'error',
+        message: erro.toString()
+      });
+    });
+}
+
+// Function to send a file
+function sendFile(to, filePath, fileName, caption, res) {
+  venomClient
+    .sendFile(to, filePath, fileName, caption)
     .then((result) => {
       res.status(200).json({
         status: 'success',
@@ -106,6 +161,45 @@ app.post('/send-message', (req, res) => {
     res.status(202).json({
       status: 'queued',
       message: 'Venom client not initialized, message queued'
+    });
+  }
+});
+
+// API route to send an image using POST
+app.post('/send-image', (req, res) => {
+  const { to, imageUrl, caption } = req.body;
+  if (venomClient) {
+    sendImage(to, imageUrl, caption, res);
+  } else {
+    res.status(500).json({
+      status: 'error',
+      message: 'Venom client not initialized'
+    });
+  }
+});
+
+// API route to send a location using POST
+app.post('/send-location', (req, res) => {
+  const { to, latitude, longitude, title} = req.body;
+  if (venomClient) {
+    sendLocation(to, latitude, longitude, title, res);
+  } else {
+    res.status(500).json({
+      status: 'error',
+      message: 'Venom client not initialized'
+    });
+  }
+});
+
+// API route to send a file using POST
+app.post('/send-file', (req, res) => {
+  const { to, filePath, fileName, caption } = req.body;
+  if (venomClient) {
+    sendFile(to, filePath, fileName, caption, res);
+  } else {
+    res.status(500).json({
+      status: 'error',
+      message: 'Venom client not initialized'
     });
   }
 });

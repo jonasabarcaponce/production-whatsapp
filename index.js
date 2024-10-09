@@ -8,11 +8,9 @@ const app = express();
 const port = 3000;
 
 let venomClient;
-let messageQueue = [];
 
-const incomingMessageUrl = process.env.NODE_ENV === 'production' 
-  ? 'https://cgdesarrollos.mx/save-message' 
-  : 'https://cgdesarrollos.mx/save-message';
+const incomingMessageUrl = 'https://cgdesarrollos.mx/save-message';
+const incomingMediaUrl = 'https://cgdesarrollos.mx/save-media';
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -20,60 +18,62 @@ app.use(express.urlencoded({ extended: true }));
 
 // Create a session when the server starts
 venom
-  .create({
-    session: 'session-name', //name of session
-  })
+  .create({ session: 'session-name' })
   .then((client) => {
     venomClient = client;
-    console.log('Venom session started');
+    console.log('✅ Sesión de Venom iniciada');
     startListening(client);
-    processQueue(); // Process any queued messages
+    startKeepAlive();
   })
   .catch((erro) => {
-    console.log('Error starting Venom session: ', erro);
+    console.log('❌ Error al iniciar la sesión de Venom: ', erro);
   });
 
 // Function to listen to incoming WhatsApp messages
 function startListening(client) {
-  client.onMessage((message) => {
-    console.log('Message received: ', message.body);
+  client.onMessage(async (message) => {
+    console.log('Mensaje recibido: ', message.body);
 
-    // Send a POST request with the message to another server
-    const data = {
-      from: message.from,
-      body: message.body,
-      timestamp: message.timestamp,
-      isGroupMsg: message.isGroupMsg,
-    };
-
-    axios
-      .post(incomingMessageUrl, data)
-      .then((response) => {
-        console.log('Message posted to the server:', response.data);
-      })
-      .catch((error) => {
-        console.error('Error posting message to the server:', error);
+    if (!message.isGroupMsg) {
+      await postToServer(incomingMessageUrl, {
+        from: message.from,
+        body: message.body,
+        timestamp: message.timestamp,
       });
 
-    // Auto-reply to "Hola"
-    if (message.body === 'Hola' && !message.isGroupMsg) {
-      client
-        .sendText(message.from, 'Gracias por escribir a CGDesarrollos 👷')
-        .then((result) => {
-          console.log('Message sent successfully.');
-        })
-        .catch((erro) => {
-          console.error('Error sending message: ', erro);
-        });
+      if (message.body === 'Hola') {
+        await sendTextMessage(message.from, 'Gracias por escribir a CGDesarrollos 👷');
+      }
+    }
+
+    if (message.isMedia || message.isMMS) {
+      await postToServer(incomingMediaUrl, {
+        from: message.from,
+        mimetype: message.mimetype,
+        filename: message.filename,
+        timestamp: message.timestamp,
+      });
     }
   });
 }
 
-// Function to process queued messages
-function processQueue() {
-  while (messageQueue.length > 0) {
-    const { to, message, res } = messageQueue.shift();
-    sendMessage(to, message, res);
+// Function to post data to the server
+async function postToServer(url, data) {
+  try {
+    const response = await axios.post(url, data);
+    console.log('✅ Publicado en el servidor:', response.data);
+  } catch (error) {
+    console.error('❌ Error al publicar en el servidor:', error);
+  }
+}
+
+// Function to send a text message
+async function sendTextMessage(to, message) {
+  try {
+    const result = await venomClient.sendText(to, message);
+    console.log('✅ Mensaje enviado exitosamente:', result);
+  } catch (erro) {
+    console.error('❌ Error al enviar el mensaje:', erro);
   }
 }
 
@@ -82,16 +82,10 @@ function sendMessage(to, message, res) {
   venomClient
     .sendText(to, message)
     .then((result) => {
-      res.status(200).json({
-        status: 'success',
-        data: result
-      });
+      res.status(200).json({ status: 'success', data: result });
     })
     .catch((erro) => {
-      res.status(500).json({
-        status: 'error',
-        message: erro.toString()
-      });
+      res.status(500).json({ status: 'error', message: erro.toString() });
     });
 }
 
@@ -100,16 +94,10 @@ function sendImage(to, imageUrl, caption, res) {
   venomClient
     .sendImage(to, imageUrl, 'image', caption)
     .then((result) => {
-      res.status(200).json({
-        status: 'success',
-        data: result
-      });
+      res.status(200).json({ status: 'success', data: result });
     })
     .catch((erro) => {
-      res.status(500).json({
-        status: 'error',
-        message: erro.toString()
-      });
+      res.status(500).json({ status: 'error', message: erro.toString() });
     });
 }
 
@@ -118,16 +106,10 @@ function sendLocation(to, latitude, longitude, title, res) {
   venomClient
     .sendLocation(to, latitude, longitude, title)
     .then((result) => {
-      res.status(200).json({
-        status: 'success',
-        data: result
-      });
+      res.status(200).json({ status: 'success', data: result });
     })
     .catch((erro) => {
-      res.status(500).json({
-        status: 'error',
-        message: erro.toString()
-      });
+      res.status(500).json({ status: 'error', message: erro.toString() });
     });
 }
 
@@ -136,32 +118,20 @@ function sendFile(to, filePath, fileName, caption, res) {
   venomClient
     .sendFile(to, filePath, fileName, caption)
     .then((result) => {
-      res.status(200).json({
-        status: 'success',
-        data: result
-      });
+      res.status(200).json({ status: 'success', data: result });
     })
     .catch((erro) => {
-      res.status(500).json({
-        status: 'error',
-        message: erro.toString()
-      });
+      res.status(500).json({ status: 'error', message: erro.toString() });
     });
 }
 
 // API route to send a WhatsApp message using POST
 app.post('/send-message', (req, res) => {
   const { to, message } = req.body;
-  console.log('Received status: ', req.body.status);
-  console.log('Received body: ', req.body);
   if (venomClient) {
     sendMessage(to, message, res);
   } else {
-    messageQueue.push({ to, message, res });
-    res.status(202).json({
-      status: 'queued',
-      message: 'Venom client not initialized, message queued'
-    });
+    res.status(500).json({ status: 'error', message: '❌ Cliente de Venom no inicializado' });
   }
 });
 
@@ -171,23 +141,17 @@ app.post('/send-image', (req, res) => {
   if (venomClient) {
     sendImage(to, imageUrl, caption, res);
   } else {
-    res.status(500).json({
-      status: 'error',
-      message: 'Venom client not initialized'
-    });
+    res.status(500).json({ status: 'error', message: '❌ Cliente de Venom no inicializado' });
   }
 });
 
 // API route to send a location using POST
 app.post('/send-location', (req, res) => {
-  const { to, latitude, longitude, title} = req.body;
+  const { to, latitude, longitude, title } = req.body;
   if (venomClient) {
     sendLocation(to, latitude, longitude, title, res);
   } else {
-    res.status(500).json({
-      status: 'error',
-      message: 'Venom client not initialized'
-    });
+    res.status(500).json({ status: 'error', message: '❌ Cliente de Venom no inicializado' });
   }
 });
 
@@ -197,29 +161,40 @@ app.post('/send-file', (req, res) => {
   if (venomClient) {
     sendFile(to, filePath, fileName, caption, res);
   } else {
-    res.status(500).json({
-      status: 'error',
-      message: 'Venom client not initialized'
-    });
+    res.status(500).json({ status: 'error', message: '✅ Cliente de Venom no inicializado' });
   }
 });
 
 // API route to check the status using GET
 app.get('/status', (req, res) => {
   if (venomClient) {
-    res.status(200).json({
-      status: 'success',
-      message: 'Venom client is active',
-    });
+    res.status(200).json({ status: 'success', message: '✅ Cliente de Venom está activo' });
   } else {
-    res.status(500).json({
-      status: 'error',
-      message: 'Venom client not initialized',
-    });
+    res.status(500).json({ status: 'error', message: '❌ Cliente de Venom no inicializado' });
   }
 });
 
+// Function to send a ping message to keep the client alive
+async function sendPing() {
+  if (venomClient) {
+    try {
+      const uniqueId = Date.now();
+      const timestamp = new Date().toISOString();
+      const pingMessage = `Ping desde el servidor de WhatsApp 🏓\nIdentificador: ${uniqueId}\nFecha y hora: ${timestamp}`;
+      await venomClient.sendText('5219982004041@c.us', pingMessage);
+      console.log('Ping enviado exitosamente. 🏓');
+    } catch (erro) {
+      console.error('Error al enviar el ping: ❌', erro);
+    }
+  }
+}
+
+// Function to start the keep-alive mechanism
+function startKeepAlive() {
+  setInterval(sendPing, 5 * 60 * 1000); // Send a ping every 5 minutes
+}
+
 // Start the Express server
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Servidor corriendo en http://localhost:${port}`);
 });

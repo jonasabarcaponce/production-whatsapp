@@ -185,6 +185,7 @@ async function sendPing() {
       console.log('Ping enviado exitosamente. 🏓 a las ' + timestamp);
     } catch (erro) {
       console.error('Error al enviar el ping: ❌', erro);
+      process.exit();
     }
   }
 }

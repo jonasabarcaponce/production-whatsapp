@@ -46,7 +46,7 @@ function startListening(client) {
       }
     }
 
-    if (message.isMedia || message.isMMS) {
+    if (message.isMedia || message.isMMS || !message.isGroupMsg) {
       await postToServer(incomingMediaUrl, {
         from: message.from,
         mimetype: message.mimetype,

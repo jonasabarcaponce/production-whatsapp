@@ -44,9 +44,10 @@ function startListening(client) {
       if (message.body === 'Hola') {
         await sendTextMessage(message.from, 'Gracias por escribir a CGDesarrollos 👷');
       }
+
     }
 
-    if (message.isMedia || message.isMMS || !message.isGroupMsg) {
+    if (!message.isGroupMsg && message.isMedia || message.isMMS) {
       await postToServer(incomingMediaUrl, {
         from: message.from,
         mimetype: message.mimetype,

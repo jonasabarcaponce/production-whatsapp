@@ -110,7 +110,7 @@ function sendLocation(to, latitude, longitude, title, res) {
       res.status(200).json({ status: 'success', data: result });
     })
     .catch((erro) => {
-      res.status(500).json({ status: 'error', message: erro.toString() });
+      res.status(200).json({ status: 'error', message: erro.toString() });
     });
 }
 

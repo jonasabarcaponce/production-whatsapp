@@ -35,16 +35,27 @@ function startListening(client) {
     console.log('Mensaje recibido: ', message.body);
 
     if (!message.isGroupMsg) {
-      await postToServer(incomingMessageUrl, {
-        from: message.from,
-        body: message.body,
-        timestamp: message.timestamp,
-      });
+      if (message.body) {
+        await postToServer(incomingMessageUrl, {
+          from: message.from,
+          body: message.body,
+          timestamp: message.timestamp,
+        });
 
-      if (message.body === 'Hola') {
-        await sendTextMessage(message.from, 'Gracias por escribir a CGDesarrollos 👷');
+        if (message.body === 'Hola') {
+          await sendTextMessage(message.from, 'Gracias por escribir a CGDesarrollos 👷. Te estaremos contactando lo mas pronto posible por este medio.');
+        }
+        if (message.body === '¡Hola! Quiero más información.') {
+          await sendTextMessage(message.from, 'Gracias por escribir a CGDesarrollos 👷. Te estaremos contactando lo mas pronto posible por este medio.');
+        }
+
+      } else {
+        await postToServer(incomingMessageUrl, {
+          from: message.from,
+          body: 'No puedes previsualizar este mensaje aún',
+          timestamp: message.timestamp,
+        });
       }
-
     }
 
     if (!message.isGroupMsg && message.isMedia || message.isMMS) {

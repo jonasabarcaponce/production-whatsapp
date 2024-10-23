@@ -36,6 +36,7 @@ function startListening(client) {
 
     if (!message.isGroupMsg) {
       if (message.body) {
+
         await postToServer(incomingMessageUrl, {
           from: message.from,
           body: message.body,
@@ -49,10 +50,11 @@ function startListening(client) {
           await sendTextMessage(message.from, 'Gracias por escribir a CGDesarrollos 👷. Te estaremos contactando lo mas pronto posible por este medio.');
         }
 
-      } else {
+      } 
+      else {
         await postToServer(incomingMessageUrl, {
           from: message.from,
-          body: 'No puedes previsualizar este mensaje aún',
+          body: message.body ?? message.content ?? message.matchedText ?? 'No se puede previsualizar este mensaje',
           timestamp: message.timestamp,
         });
       }

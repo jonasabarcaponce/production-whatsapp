@@ -56,7 +56,7 @@ function startListening(client) {
         console.log('❌ Mensaje indefinido: ', message);
         await postToServer(incomingMessageUrl, {
           from: message.from,
-          body: message.body ?? message.content ?? message.matchedText ?? 'No se puede previsualizar este mensaje',
+          body: message.body ?? message.content ?? message.matchedText ?? null,
           timestamp: message.timestamp,
         });
       }

@@ -197,7 +197,7 @@ async function sendPing() {
       const uniqueId = Date.now();
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Cancun' });
       const pingMessage = `Ping desde el servidor de WhatsApp 🏓\nIdentificador: ${uniqueId}\nFecha y hora: ${timestamp}`;
-      await venomClient.sendText('5219982004041@c.us', pingMessage);
+      await venomClient.sendText('5219992754109@c.us', pingMessage);
       console.log('Ping enviado exitosamente. 🏓 a las ' + timestamp);
     } catch (erro) {
       console.error('Error al enviar el ping: ❌', erro);

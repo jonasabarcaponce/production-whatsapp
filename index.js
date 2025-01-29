@@ -18,7 +18,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Create a session when the server starts
 venom
-  .create({ session: 'session-name' })
+  .create({
+    session: 'session-name',
+    headless: true, // Enable headless mode for puppeteer
+  })
   .then((client) => {
     venomClient = client;
     console.log('✅ Sesión de Venom iniciada');
